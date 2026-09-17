@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>제로누수 (ZERO LEAK) - 누수탐지 100% 성공 보장</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Noto Sans KR', sans-serif; color: #2b2b2b; background-color: #f4f6f9; line-height: 1.6; padding-bottom: 85px; }
+        a { text-decoration: none; color: inherit; }
+
+        :root {
+            --main-blue: #0f4c81;
+            --accent-blue: #1d72b8;
+            --kakao-yellow: #FEE500;
+            --kakao-brown: #3C1E1E;
+            --sms-green: #20c997;
+            --text-dark: #112937;
+        }
+
+        /* 헤더 & 로고 마크 */
+        header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px 6%; background-color: #ffffff;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.06); position: sticky; top: 0; z-index: 100;
+        }
+        .logo-wrap { display: flex; align-items: center; gap: 10px; }
+        .logo-mark {
+            width: 38px; height: 38px;
+            background: linear-gradient(135deg, #0f4c81 0%, #20c997 100%);
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 3px 8px rgba(15, 76, 129, 0.25);
+            color: #ffffff;
+        }
+        .logo-mark svg { width: 22px; height: 22px; fill: currentColor; }
+        .logo-text { font-size: 1.35rem; font-weight: 800; color: var(--main-blue); letter-spacing: -0.5px; line-height: 1.1; }
+        .logo-text span { display: block; font-size: 0.7rem; color: #888; font-weight: 500; letter-spacing: 1px; margin-top: 2px; }
+        
+        .head-btn-group { display: flex; gap: 6px; }
+        .head-btn { padding: 7px 13px; border-radius: 20px; font-size: 0.82rem; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; transition: transform 0.2s; }
+        .head-btn:hover { transform: translateY(-2px); }
+        .call-btn-head { background-color: var(--main-blue); color: #fff; }
+        .kakao-btn-head { background-color: var(--kakao-yellow); color: var(--kakao-brown); }
+        .sms-btn-head { background-color: var(--sms-green); color: #fff; }
+
+        /* 메인 히어로 */
+        .hero { 
+            background: linear-gradient(135deg, #0f4c81 0%, #1e52b8 100%); 
+            color: #ffffff; text-align: center; padding: 55px 20px 65px;
+            box-shadow: inset 0 -10px 20px rgba(0,0,0,0.1);
+        }
+        .badge { 
+            display: inline-block; background-color: rgba(255, 255, 255, 0.15); 
+            border: 1px solid rgba(255, 255, 255, 0.3); padding: 6px 18px; 
+            border-radius: 25px; font-size: 0.88rem; margin-bottom: 18px; font-weight: 500;
+            backdrop-filter: blur(5px);
+        }
+        .hero h1 { font-size: 1.9rem; font-weight: 800; margin-bottom: 12px; word-break: keep-all; line-height: 1.35; }
+        .hero p { font-size: 0.95rem; opacity: 0.9; margin-bottom: 28px; font-weight: 400; }
+        
+        .hero-btn-group { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
+        .hero-btn { 
+            padding: 13px 22px; border-radius: 30px; font-size: 0.95rem; font-weight: 700; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2); display: inline-flex; align-items: center; gap: 6px; 
+            transition: all 0.2s;
+        }
+        .hero-btn:hover { transform: translateY(-3px); box-shadow: 0 6px 16px rgba(0,0,0,0.25); }
+        .phone-box { background: #ffffff; color: var(--main-blue); }
+        .kakao-box { background: var(--kakao-yellow); color: var(--kakao-brown); }
+        .sms-box { background: var(--sms-green); color: #ffffff; }
+
+        /* 핵심 강점 카드 */
+        .trust-section { max-width: 1100px; margin: -30px auto 45px; padding: 0 20px; position: relative; z-index: 10; }
+        .trust-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 15px; }
+        .trust-card { 
+            background: #ffffff; padding: 22px 15px; border-radius: 12px; text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.06); border: 1px solid #eef2f5;
+        }
+        .trust-icon { font-size: 2rem; margin-bottom: 8px; display: block; }
+        .trust-title { font-weight: 700; font-size: 1rem; color: var(--text-dark); margin-bottom: 4px; }
+        .trust-desc { font-size: 0.83rem; color: #666; word-break: keep-all; }
+
+        /* 공통 섹션 스타일 */
+        .container { max-width: 1150px; margin: 50px auto; padding: 0 20px; text-align: center; }
+        .section-title { font-size: 1.6rem; color: var(--text-dark); margin-bottom: 8px; font-weight: 800; }
+        .section-sub { font-size: 0.9rem; color: #666; margin-bottom: 30px; }
+
+        /* 서비스 목록 카드 */
+        .service-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; text-align: left; }
+        .service-card { background: #fff; padding: 22px; border-radius: 12px; border: 1px solid #e0e6ed; box-shadow: 0 2px 8px rgba(0,0,0,0.03); }
+        .service-tag { display: inline-block; background: #e8f3ff; color: var(--accent-blue); font-size: 0.75rem; font-weight: 700; padding: 3px 8px; border-radius: 4px; margin-bottom: 10px; }
+        .service-card h3 { font-size: 1.1rem; color: var(--text-dark); margin-bottom: 6px; font-weight: 700; }
+        .service-card p { font-size: 0.85rem; color: #666; }
+
+        /* 작업 프로세스 */
+        .process-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
+        .process-box { background: #ffffff; padding: 25px 15px; border-radius: 12px; border-top: 4px solid var(--accent-blue); box-shadow: 0 3px 10px rgba(0,0,0,0.04); }
+        .process-step { font-size: 0.8rem; font-weight: 800; color: var(--accent-blue); letter-spacing: 1px; margin-bottom: 5px; }
+        .process-box h4 { font-size: 1.05rem; font-weight: 700; color: #222; margin-bottom: 6px; }
+        .process-box p { font-size: 0.82rem; color: #666; }
+
+        /* 갤러리 섹션 */
+        .gallery-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; }
+        .card { 
+            background: #ffffff; border-radius: 12px; overflow: hidden; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid #eaeaea;
+            transition: all 0.3s ease;
+        }
+        .card:hover { transform: translateY(-5px); box-shadow: 0 8px 20px rgba(0,0,0,0.12); }
+        .img-wrapper { width: 100%; height: 190px; overflow: hidden; background-color: #e8ecef; }
+        .card-img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.4s ease; }
+        .card:hover .card-img { transform: scale(1.08); }
+        .card-title { padding: 13px 10px; font-size: 0.92rem; font-weight: 700; color: #333; background-color: #ffffff; border-top: 1px solid #f1f3f5; }
+
+        /* 고객 후기 */
+        .review-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; text-align: left; }
+        .review-card { background: #b2c7da; padding: 18px; border-radius: 12px; }
+        .review-bubble { background: #ffffff; padding: 12px 15px; border-radius: 12px; font-size: 0.88rem; color: #333; position: relative; margin-bottom: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .review-user { font-size: 0.8rem; font-weight: 700; color: #2e4355; }
+
+        /* FAQ */
+        .faq-list { max-width: 800px; margin: 0 auto; text-align: left; }
+        .faq-item { background: #fff; padding: 18px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #e2e8f0; }
+        .faq-q { font-weight: 700; font-size: 0.98rem; color: var(--main-blue); margin-bottom: 6px; }
+        .faq-a { font-size: 0.88rem; color: #555; }
+
+        /* 하단 CTA 섹션 */
+        .cta-section { text-align: center; margin: 40px 0 50px 0; display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; padding: 0 15px; }
+        .cta-btn { padding: 13px 24px; border-radius: 8px; font-size: 0.95rem; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; transition: transform 0.2s; }
+        .cta-btn:hover { transform: translateY(-2px); }
+        .cta-btn-phone { background-color: var(--accent-blue); color: white; box-shadow: 0 4px 10px rgba(30,82,184,0.25); }
+        .cta-btn-kakao { background-color: var(--kakao-yellow); color: var(--kakao-brown); box-shadow: 0 4px 10px rgba(0,0,0,0.08); }
+        .cta-btn-sms { background-color: var(--sms-green); color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.08); }
+
+        /* 하단 고정 퀵바 */
+        .bottom-fix-bar {
+            position: fixed; bottom: 0; left: 0; width: 100%;
+            background-color: #ffffff;
+            display: flex; justify-content: space-around; align-items: center;
+            padding: 8px 12px;
+            box-shadow: 0 -4px 15px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+        .bar-btn {
+            flex: 1; margin: 0 4px; text-align: center; padding: 11px 0;
+            border-radius: 8px; font-size: 0.88rem; font-weight: 700;
+            display: flex; align-items: center; justify-content: center; gap: 5px;
+        }
+        .bar-call { background-color: var(--main-blue); color: #fff; }
+        .bar-kakao { background-color: var(--kakao-yellow); color: var(--kakao-brown); }
+        .bar-sms { background-color: var(--sms-green); color: #fff; }
+
+        footer { background-color: #1e242b; color: #949a9f; text-align: center; padding: 25px 20px; font-size: 0.8rem; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+
+    <!-- 헤더 (로고 마크 적용) -->
+    <header>
+        <div class="logo-wrap">
+            <div class="logo-mark">
+                <!-- 물방울 + 탐지 심볼 SVG 로고 마크 -->
+                <svg viewBox="0 0 24 24">
+                    <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0zM12 16a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>
+                </svg>
+            </div>
+            <div class="logo-text">
+                제로누수
+                <span>ZERO LEAK</span>
+            </div>
+        </div>
+        <div class="head-btn-group">
+            <a href="tel:010-5389-9699" class="head-btn call-btn-head">📞 전화</a>
+            <a href="https://open.kakao.com/o/sTBjLFCi" target="_blank" class="head-btn kakao-btn-head">💬 카톡</a>
+            <a href="sms:010-5389-9699?body=안녕하세요!%20제로누수%20누수탐지%20문의드립니다." class="head-btn sms-btn-head">✉️ 문자</a>
+        </div>
+    </header>
+
+    <!-- 메인 비주얼 -->
+    <section class="hero">
+        <div class="badge">누수 탐지 100% 성공 보장 · 최첨단 디지털 탐지 전문</div>
+        <h1>골치 아픈 누수와 배관 문제,<br>제로누수가 완벽하게 해결합니다</h1>
+        <p>원인 미해결 시 비용 0원 | 일상생활배상책임보험 서류 일체 대행</p>
+        
+        <div class="hero-btn-group">
+            <a href="tel:010-5389-9699" class="hero-btn phone-box">📞 010-5389-9699</a>
+            <a href="https://open.kakao.com/o/sTBjLFCi" target="_blank" class="hero-btn kakao-box">💬 카카오톡 문의</a>
+            <a href="sms:010-5389-9699?body=안녕하세요!%20제로누수%20누수탐지%20문의드립니다." class="hero-btn sms-box">✉️ 문자 상담</a>
+        </div>
+    </section>
+
+    <!-- 핵심 특장점 -->
+    <section class="trust-section">
+        <div class="trust-grid">
+            <div class="trust-card">
+                <span class="trust-icon">🎯</span>
+                <div class="trust-title">못 잡으면 0원</div>
+                <div class="trust-desc">탐지 실패 시 비용을 일체 청구하지 않습니다.</div>
+            </div>
+            <div class="trust-card">
+                <span class="trust-icon">📄</span>
+                <div class="trust-title">보험 서류 대행</div>
+                <div class="trust-desc">일상생활 배상책임보험 서류 무료 준비</div>
+            </div>
+            <div class="trust-card">
+                <span class="trust-icon">⚡</span>
+                <div class="trust-title">24시 긴급 출동</div>
+                <div class="trust-desc">상담 직후 가장 가까운 기사님 신속 배치</div>
+            </div>
+            <div class="trust-card">
+                <span class="trust-icon">🔬</span>
+                <div class="trust-title">최첨단 장비 보유</div>
+                <div class="trust-desc">디지털 공압 및 내시경 카메라 정밀 탐지</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 주요 제공 서비스 -->
+    <section class="container">
+        <h2 class="section-title">제로누수 주요 전문 서비스</h2>
+        <p class="section-sub">누수 탐지부터 복구 공사, 보험 처리까지 원스톱으로 해결해 드립니다.</p>
+        
+        <div class="service-grid">
+            <div class="service-card">
+                <span class="service-tag">BEST</span>
+                <h3>누수 정밀 탐지</h3>
+                <p>청음식·가스식 탐지 및 첨단 공압 장비로 아파트/빌라 미세 누수 지점 정확 포착</p>
+            </div>
+            <div class="service-card">
+                <span class="service-tag">QUICK</span>
+                <h3>하수구·배관 막힘 해결</h3>
+                <p>고압 세척 및 배관 내시경 검사로 답답하게 막힌 배관을 뻥 뚫어 드립니다.</p>
+            </div>
+            <div class="service-card">
+                <span class="service-tag">PERFECT</span>
+                <h3>방수 및 배관 복구 공사</h3>
+                <p>최소한의 파쇄로 건물 손상을 줄이고 굴착 부위 깔끔한 마감 공사 진행</p>
+            </div>
+            <div class="service-card">
+                <span class="service-tag">FREE</span>
+                <h3>보험 청구 서류 대행</h3>
+                <p>고객 부담금을 줄여주는 일상생활 배상책임보험 관련 제반 서류 일체 발급 지원</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- 체계적인 작업 프로세스 -->
+    <section class="container">
+        <h2 class="section-title">체계적인 4단계 작업 프로세스</h2>
+        <p class="section-sub">투명하고 정확한 공정으로 확실한 결과를 보장합니다.</p>
+        
+        <div class="process-grid">
+            <div class="process-box">
+                <div class="process-step">STEP 01</div>
+                <h4>24시 긴급 상담</h4>
+                <p>전화, 카톡, 문자로 누수 현상 접수 및 친절 안내</p>
+            </div>
+            <div class="process-box">
+                <div class="process-step">STEP 02</div>
+                <h4>현장 출동 & 정밀 탐지</h4>
+                <p>첨단 장비를 동원해 누수 원인 지점 정밀 진단</p>
+            </div>
+            <div class="process-box">
+                <div class="process-step">STEP 03</div>
+                <h4>원인 해결 & 복구 공사</h4>
+                <p>배관 수리 및 타일·미장 등 깔끔한 마무리 복구</p>
+            </div>
+            <div class="process-box">
+                <div class="process-step">STEP 04</div>
+                <h4>보험 서류 지원</h4>
+                <p>보험 청구용 견적서 및 소견서 정성껏 발급</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- 실시간 현장 갤러리 -->
+    <section class="container">
+        <h2 class="section-title">현장 작업 실시간 갤러리</h2>
+        <p class="section-sub">실제 현장에서 검증된 11가지 정밀 시공 공정입니다.</p>
+        
+        <div class="gallery-grid">
+            <div class="card"><div class="img-wrapper"><img src="KakaoTalk_20260917_155546544_01.jpg" alt="1. 정밀 굴착 및 배관 복구 시공" class="card-img"></div><div class="card-title">1. 정밀 굴착 및 배관 복구 시공</div></div>
+            <div class="card"><div class="img-wrapper"><img src="KakaoTalk_20260917_155546544_02.jpg" alt="2. 굴착 부위 정밀 점검" class="card-img"></div><div class="card-title">2. 굴착 부위 정밀 점검</div></div>
+            <div class="card"><div class="img-wrapper"><img src="KakaoTalk_20260917_155546544_03.jpg" alt="3. 싱크대 하부 분배기 점검" class="card-img"></div><div class="card-title">3. 싱크대 하부 분배기 점검</div></div>
+            <div class="card"><div class="img-wrapper"><img src="KakaoTalk_20260917_155546544_04.jpg" alt="4. 첨단 디지털 공압 장비 세팅" class="card-img"></div><div class="card-title">4. 첨단 디지털 공압 장비 세팅</div></div>
+            <div class="card"><div class="img-wrapper"><img src="KakaoTalk_20260917_155546544_05.jpg" alt="5. 복도 양수기함 1차 점검" class="card-img"></div><div class="card-title">5. 복도 양수기함 1차 점검</div></div>
+            <div class="card"><div class="img-wrapper"><img src="KakaoTalk_20260917_155546544_06.jpg" alt="6. 디지털 고정밀 압력 측정" class="card-img"></div><div class="card-title">6. 디지털 고정밀 압력 측정</div></div>
+            <div class="card"><div class="img-wrapper"><img src="KakaoTalk_20260917_155546544_07.jpg" alt="7. 수도 계량기 유량 정밀 검사" class="card-img"></div><div class="card-title">7. 수도 계량기 유량 정밀 검사</div></div>
+            <div class="card"><div class="img-wrapper"><img src="KakaoTalk_20260917_155546544_08.jpg" alt="8. 구간별 밸브 차단 압력 검사" class="card-img"></div><div class="card-title">8. 구간별 밸브 차단 압력 검사</div></div>
+            <div class="card"><div class="img-wrapper"><img src="KakaoTalk_20260917_155546544_09.jpg" alt="9. 분배기 미세 누수 지점 포착" class="card-img"></div><div class="card-title">9. 분배기 미세 누수 지점 포착</div></div>
+            <div class="card"><div class="img-wrapper"><img src="KakaoTalk_20260917_155546544_10.jpg" alt="10. 양수기함 공압 주입 연결" class="card-img"></div><div class="card-title">10. 양수기함 공압 주입 연결</div></div>
+            <div class="card"><div class="img-wrapper"><img src="KakaoTalk_20260917_155546544_11.jpg" alt="11. 배관 라인 최종 종합 점검" class="card-img"></div><div class="card-title">11. 배관 라인 최종 종합 점검</div></div>
+        </div>
+    </section>
+
+    <!-- 고객 후기 -->
+    <section class="container">
+        <h2 class="section-title">고객님이 직접 남겨주신 실사용 후기</h2>
+        <p class="section-sub">솔직한 이용 후기가 제로누수의 신뢰를 증명합니다.</p>
+        
+        <div class="review-grid">
+            <div class="review-card">
+                <div class="review-bubble">"다른 업체 두 곳이나 왔다가 못 잡고 갔는데, 제로누수 사장님께서 첨단 장비로 30분 만에 원인을 바로 찾아내셨어요! 정말 감사합니다."</div>
+                <div class="review-user">⭐ 서울 마포구 아파트 고객님</div>
+            </div>
+            <div class="review-card">
+                <div class="review-bubble">"아랫집 천장 물 새서 당황했는데 일상생활배상책임보험 서류까지 꼼꼼하게 다 챙겨주셔서 제 돈 거의 안 들이고 해결했습니다👍"</div>
+                <div class="review-user">⭐ 경기 고양시 빌라 고객님</div>
+            </div>
+            <div class="review-card">
+                <div class="review-bubble">"야간에 갑자기 물이 새서 전화드렸는데 정말 빠르게 와주셨어요. 친절하게 설명해 주시고 공사도 깔끔했습니다."</div>
+                <div class="review-user">⭐ 인천 부평구 상가 고객님</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="container">
+        <h2 class="section-title">자주 묻는 질문 (FAQ)</h2>
+        <p class="section-sub">궁금하신 점을 미리 확인해 보세요.</p>
+        
+        <div class="faq-list">
+            <div class="faq-item">
+                <div class="faq-q">Q. 누수 원인을 못 찾으면 정말 비용이 안 드나요?</div>
+                <div class="faq-a">네, 맞습니다! 제로누수는 원인 지점을 정확히 찾아내지 못할 경우 탐지 비용을 일체 청구하지 않습니다.</div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-q">Q. 아랫집 누수 피해도 보험 처리가 가능한가요?</div>
+                <div class="faq-a">네, 가입해 두신 '일상생활 배상책임보험'이 있다면 자기부담금을 제외한 대부분의 공사비용과 피해 복구비용을 보상받으실 수 있으며, 저희가 서류를 완비해 드립니다.</div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-q">Q. 주말이나 야간에도 상담 및 출동이 가능한가요?</div>
+                <div class="faq-a">네, 24시간 365일 상담 대기 중이며 응급 누수 발생 시 신속하게 출동해 드립니다.</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 하단 CTA 섹션 -->
+    <div class="cta-section">
+        <a href="tel:010-5389-9699" class="cta-btn cta-btn-phone">📞 24시간 전화 상담</a>
+        <a href="https://open.kakao.com/o/sTBjLFCi" target="_blank" class="cta-btn cta-btn-kakao">💬 카카오톡 1:1 상담</a>
+        <a href="sms:010-5389-9699?body=안녕하세요!%20제로누수%20누수탐지%20문의드립니다." class="cta-btn cta-btn-sms">✉️ 문자 상담하기</a>
+    </div>
+
+    <!-- 푸터 -->
+    <footer>
+        <p>© 제로누수 ZERO LEAK. All rights reserved.</p>
+        <p>상호명: 제로누수 | 대표번호: 010-5389-9699</p>
+    </footer>
+
+    <!-- 하단 고정 퀵 바 -->
+    <div class="bottom-fix-bar">
+        <a href="tel:010-5389-9699" class="bar-btn bar-call">📞 전화상담</a>
+        <a href="https://open.kakao.com/o/sTBjLFCi" target="_blank" class="bar-btn bar-kakao">💬 카톡상담</a>
+        <a href="sms:010-5389-9699?body=안녕하세요!%20제로누수%20누수탐지%20문의드립니다." class="bar-btn bar-sms">✉️ 문자상담</a>
+    </div>
+
+</body>
+</html>
